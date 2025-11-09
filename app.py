@@ -1,11 +1,18 @@
-# ... (all your other imports)
-import os  # <-- ADD THIS IMPORT
-from database import init_db # <-- ADD THIS IMPORT
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import check_password_hash
+import os
+from datetime import datetime
+from database import get_db_connection, init_db
 
-# Get the DB path (defaults to 'clinic.db' locally)
+# --- CONFIGURATION ---
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'a_very_secret_key_that_should_be_changed'
+
+# Get DB path (default to 'clinic.db')
 DB_PATH = os.environ.get('DB_PATH', 'clinic.db')
 
-# Auto-initialize the database if it doesn't exist on the persistent disk
+# Initialize DB if not exists
 if not os.path.exists(DB_PATH):
     print(f"Database not found at {DB_PATH}. Initializing...")
     try:
@@ -14,25 +21,19 @@ if not os.path.exists(DB_PATH):
     except Exception as e:
         print(f"Error initializing database: {e}")
 
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'a_very_secret_key_that_should_be_changed'
-
-# --- Initialize DB if first run ---
-if not os.path.exists('clinic.db'):
-    init_db()
-
-# --- Flask-Login Setup ---
+# --- FLASK-LOGIN SETUP ---
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
+
 
 class User(UserMixin):
     """User model for Flask-Login."""
     def __init__(self, id, username):
         self.id = id
         self.username = username
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -46,7 +47,6 @@ def load_user(user_id):
 
 
 # --- AUTH ROUTES ---
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Handles user login."""
@@ -56,7 +56,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
+
         conn = get_db_connection()
         user_row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
         conn.close()
@@ -82,14 +82,13 @@ def logout():
 
 
 # --- DASHBOARD ---
-
 @app.route('/')
 @login_required
 def index():
     """Dashboard: Shows upcoming appointments."""
     conn = get_db_connection()
     appointments = conn.execute("""
-        SELECT a.id, p.name as patient_name, d.name as doctor_name, a.appt_datetime, a.status
+        SELECT a.id, p.name AS patient_name, d.name AS doctor_name, a.appt_datetime, a.status
         FROM appointments a
         JOIN patients p ON a.patient_id = p.id
         JOIN doctors d ON a.doctor_id = d.id
@@ -101,7 +100,6 @@ def index():
 
 
 # --- PATIENT ROUTES ---
-
 @app.route('/patients')
 @login_required
 def list_patients():
@@ -109,6 +107,7 @@ def list_patients():
     patients = conn.execute("SELECT * FROM patients ORDER BY name").fetchall()
     conn.close()
     return render_template('patients.html', patients=patients)
+
 
 @app.route('/patients/add', methods=['POST'])
 @login_required
@@ -126,11 +125,12 @@ def add_patient():
     flash('Patient added successfully!', 'success')
     return redirect(url_for('list_patients'))
 
+
 @app.route('/patient/<int:patient_id>', methods=['GET', 'POST'])
 @login_required
 def patient_detail(patient_id):
     conn = get_db_connection()
-    
+
     if request.method == 'POST':
         medical_history = request.form['medical_history']
         conn.execute("UPDATE patients SET medical_history = ? WHERE id = ?", (medical_history, patient_id))
@@ -139,29 +139,27 @@ def patient_detail(patient_id):
 
     patient = conn.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
     history = conn.execute("""
-        SELECT a.appt_datetime, d.name as doctor_name, a.status
+        SELECT a.appt_datetime, d.name AS doctor_name, a.status
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.id
         WHERE a.patient_id = ? ORDER BY a.appt_datetime DESC
     """, (patient_id,)).fetchall()
-    
     conn.close()
-    
-    if patient is None:
+
+    if not patient:
         flash('Patient not found.', 'error')
         return redirect(url_for('list_patients'))
-        
+
     return render_template('patient_detail.html', patient=patient, history=history)
 
 
 # --- APPOINTMENT ROUTES ---
-
 @app.route('/appointments')
 @login_required
 def list_appointments():
     conn = get_db_connection()
     appointments = conn.execute("""
-        SELECT a.id, p.name as patient_name, d.name as doctor_name, a.appt_datetime, a.status
+        SELECT a.id, p.name AS patient_name, d.name AS doctor_name, a.appt_datetime, a.status
         FROM appointments a
         JOIN patients p ON a.patient_id = p.id
         JOIN doctors d ON a.doctor_id = d.id
@@ -172,13 +170,14 @@ def list_appointments():
     conn.close()
     return render_template('appointments.html', appointments=appointments, patients=patients, doctors=doctors)
 
+
 @app.route('/appointments/book', methods=['POST'])
 @login_required
 def book_appointment():
     patient_id = request.form['patient_id']
     doctor_id = request.form['doctor_id']
     appt_datetime_str = request.form['appt_datetime']
-    
+
     try:
         appt_datetime = datetime.fromisoformat(appt_datetime_str)
         appt_time = appt_datetime.time()
@@ -187,7 +186,6 @@ def book_appointment():
         return redirect(url_for('list_appointments'))
 
     conn = get_db_connection()
-    
     doctor = conn.execute("SELECT avail_start_time, avail_end_time FROM doctors WHERE id = ?", (doctor_id,)).fetchone()
     doc_start = datetime.strptime(doctor['avail_start_time'], '%H:%M:%S').time()
     doc_end = datetime.strptime(doctor['avail_end_time'], '%H:%M:%S').time()
@@ -206,7 +204,7 @@ def book_appointment():
         flash('Doctor already has an appointment at this time.', 'error')
         conn.close()
         return redirect(url_for('list_appointments'))
-    
+
     conn.execute("INSERT INTO appointments (patient_id, doctor_id, appt_datetime) VALUES (?, ?, ?)",
                  (patient_id, doctor_id, appt_datetime))
     conn.commit()
@@ -214,25 +212,26 @@ def book_appointment():
     flash('Appointment booked successfully!', 'success')
     return redirect(url_for('list_appointments'))
 
+
 @app.route('/appointment/update_status', methods=['POST'])
 @login_required
 def update_appointment_status():
     appt_id = request.form['appointment_id']
     new_status = request.form['status']
-    
+
     conn = get_db_connection()
     conn.execute("UPDATE appointments SET status = ? WHERE id = ?", (new_status, appt_id))
     conn.commit()
     conn.close()
-    
+
     flash(f"Appointment {appt_id} status updated to {new_status}.", 'success')
     return redirect(request.referrer or url_for('index'))
-# --- Doctor Routes ---
 
+
+# --- DOCTOR ROUTES ---
 @app.route('/doctors', methods=['GET', 'POST'])
 @login_required
 def doctors():
-    """Lists all doctors and handles adding a new one."""
     conn = get_db_connection()
 
     if request.method == 'POST':
@@ -241,7 +240,6 @@ def doctors():
         avail_start = request.form['avail_start_time']
         avail_end = request.form['avail_end_time']
 
-        # Simple validation for times
         if avail_start >= avail_end:
             flash('Available start time must be before end time.', 'error')
         else:
@@ -254,24 +252,23 @@ def doctors():
                 flash(f"Dr. {name} added successfully!", 'success')
             except Exception as e:
                 flash(f"Error adding doctor: {e}", 'error')
-        
+
+        conn.close()
         return redirect(url_for('doctors'))
 
-    # GET request: Show all doctors
     doctors = conn.execute("SELECT * FROM doctors ORDER BY name").fetchall()
     conn.close()
     return render_template('doctors.html', doctors=doctors)
 
 
 # --- BILLING ROUTES ---
-
 @app.route('/billing')
 @login_required
 def list_billing():
     conn = get_db_connection()
     bills = conn.execute("""
         SELECT b.id, b.amount, b.status, b.issued_date,
-               p.name as patient_name, d.name as doctor_name, a.appt_datetime
+               p.name AS patient_name, d.name AS doctor_name, a.appt_datetime
         FROM billing b
         JOIN appointments a ON b.appointment_id = a.id
         JOIN patients p ON a.patient_id = p.id
@@ -281,17 +278,18 @@ def list_billing():
     conn.close()
     return render_template('billing.html', bills=bills)
 
+
 @app.route('/billing/update_status', methods=['POST'])
 @login_required
 def update_billing_status():
     bill_id = request.form['bill_id']
     new_status = request.form['status']
-    
+
     conn = get_db_connection()
     conn.execute("UPDATE billing SET status = ? WHERE id = ?", (new_status, bill_id))
     conn.commit()
     conn.close()
-    
+
     flash(f"Bill {bill_id} status updated to {new_status}.", 'success')
     return redirect(url_for('list_billing'))
 
