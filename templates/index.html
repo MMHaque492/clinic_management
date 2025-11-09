@@ -1,0 +1,41 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Dashboard</h2>
+  <h3>Upcoming Scheduled Appointments</h3>
+  
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Patient</th>
+        <th>Doctor</th>
+        <th>Date & Time</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for appt in appointments %}
+      <tr>
+        <td>{{ appt.patient_name }}</td>
+        <td>{{ appt.doctor_name }}</td>
+        <td>{{ appt.appt_datetime }}</td>
+        <td>{{ appt.status }}</td>
+        <td>
+          <form action="{{ url_for('update_appointment_status') }}" method="POST" style="display:inline;">
+            <input type="hidden" name="appointment_id" value="{{ appt.id }}">
+            <select name="status" onchange="this.form.submit()">
+              <option value="Scheduled" {% if appt.status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+              <option value="Completed" {% if appt.status == 'Completed' %}selected{% endif %}>Completed</option>
+              <option value="Cancelled" {% if appt.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No upcoming appointments.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

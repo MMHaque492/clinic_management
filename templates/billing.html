@@ -1,0 +1,47 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Billing Records</h2>
+  
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Bill ID</th>
+        <th>Patient</th>
+        <th>Doctor</th>
+        <th>Appt. Date</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Issued</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bill in bills %}
+      <tr>
+        <td>{{ bill.id }}</td>
+        <td>{{ bill.patient_name }}</td>
+        <td>{{ bill.doctor_name }}</td>
+        <td>{{ bill.appt_datetime }}</td>
+        <td>${{ "%.2f"|format(bill.amount) }}</td>
+        <td>{{ bill.status }}</td>
+        <td>{{ bill.issued_date }}</td>
+        <td>
+          {% if bill.status == 'Pending' %}
+          <form action="{{ url_for('update_billing_status') }}" method="POST" style="display:inline;">
+            <input type="hidden" name="bill_id" value="{{ bill.id }}">
+            <input type="hidden" name="status" value="Paid">
+            <button type="submit">Mark as Paid</button>
+          </form>
+          {% else %}
+          -
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8">No billing records found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

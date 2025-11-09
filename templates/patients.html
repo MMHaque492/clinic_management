@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Manage Patients</h2>
+  
+  <div class="form-container">
+    <h3>Add New Patient</h3>
+    <form action="{{ url_for('add_patient') }}" method="POST">
+      <div>
+        <label>Name:</label>
+        <input type="text" name="name" required>
+      </div>
+      <div>
+        <label>Date of Birth:</label>
+        <input type="date" name="dob" required>
+      </div>
+      <div>
+        <label>Contact:</label>
+        <input type="text" name="contact" required>
+      </div>
+      <div>
+        <label>Medical History:</label>
+        <textarea name="medical_history" rows="3"></textarea>
+      </div>
+      <button type="submit">Add Patient</button>
+    </form>
+  </div>
+  
+  <hr>
+  
+  <h3>All Patients</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Date of Birth</th>
+        <th>Contact</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for patient in patients %}
+      <tr>
+        <td>{{ patient.name }}</td>
+        <td>{{ patient.dob }}</td>
+        <td>{{ patient.contact }}</td>
+        <td>
+          <a href="{{ url_for('patient_detail', patient_id=patient.id) }}">View Details</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

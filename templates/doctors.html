@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Manage Doctors</h2>
+  
+  <div class="form-container">
+    <h3>Add New Doctor</h3>
+    <form action="{{ url_for('doctors') }}" method="POST">
+      <div>
+        <label>Name:</label>
+        <input type="text" name="name" required>
+      </div>
+      <div>
+        <label>Specialization:</label>
+        <input type="text" name="specialization" required>
+      </div>
+      <div>
+        <label>Available Start Time:</label>
+        <input type="time" name="avail_start_time" required>
+      </div>
+      <div>
+        <label>Available End Time:</label>
+        <input type="time" name="avail_end_time" required>
+      </div>
+      <button type="submit">Add Doctor</button>
+    </form>
+  </div>
+  
+  <hr>
+  
+  <h3>All Doctors</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Specialization</th>
+        <th>Available From</th>
+        <th>Available To</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doctor in doctors %}
+      <tr>
+        <td>{{ doctor.id }}</td>
+        <td>{{ doctor.name }}</td>
+        <td>{{ doctor.specialization }}</td>
+        <td>{{ doctor.avail_start_time }}</td>
+        <td>{{ doctor.avail_end_time }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No doctors found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

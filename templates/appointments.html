@@ -1,0 +1,72 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Manage Appointments</h2>
+  
+  <div class="form-container">
+    <h3>Book New Appointment</h3>
+    <form action="{{ url_for('book_appointment') }}" method="POST">
+      <div>
+        <label>Patient:</label>
+        <select name="patient_id" required>
+          <option value="">Select Patient...</option>
+          {% for p in patients %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Doctor:</label>
+        <select name="doctor_id" required>
+          <option value="">Select Doctor...</option>
+          {% for d in doctors %}
+            <option value="{{ d.id }}">{{ d.name }} ({{ d.specialization }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Date and Time:</label>
+        <input type="datetime-local" name="appt_datetime" required>
+      </div>
+      <button type="submit">Book Appointment</button>
+    </form>
+  </div>
+  
+  <hr>
+  
+  <h3>All Appointments</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Patient</th>
+        <th>Doctor</th>
+        <th>Date & Time</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for appt in appointments %}
+      <tr>
+        <td>{{ appt.patient_name }}</td>
+        <td>{{ appt.doctor_name }}</td>
+        <td>{{ appt.appt_datetime }}</td>
+        <td>{{ appt.status }}</td>
+        <td>
+          <form action="{{ url_for('update_appointment_status') }}" method="POST" style="display:inline;">
+            <input type="hidden" name="appointment_id" value="{{ appt.id }}">
+            <select name="status" onchange="this.form.submit()">
+              <option value="Scheduled" {% if appt.status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+              <option value="Completed" {% if appt.status == 'Completed' %}selected{% endif %}>Completed</option>
+              <option value="Cancelled" {% if appt.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5">No appointments found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

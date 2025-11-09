@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>Patient: {{ patient.name }}</h2>
+  
+  <div class="patient-details">
+    <p><strong>DOB:</strong> {{ patient.dob }}</p>
+    <p><strong>Contact:</strong> {{ patient.contact }}</p>
+  </div>
+  
+  <div class="form-container">
+    <h3>Medical History</h3>
+    <p>(Note: In a real system, this sensitive data must be encrypted and access-controlled.)</p>
+    <form action="{{ url_for('patient_detail', patient_id=patient.id) }}" method="POST">
+      <textarea name="medical_history" rows="6">{{ patient.medical_history }}</textarea>
+      <button type="submit">Update History</button>
+    </form>
+  </div>
+  
+  <hr>
+
+  <h3>Appointment History</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date & Time</th>
+        <th>Doctor</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in history %}
+      <tr>
+        <td>{{ item.appt_datetime }}</td>
+        <td>{{ item.doctor_name }}</td>
+        <td>{{ item.status }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="3">No appointment history found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
