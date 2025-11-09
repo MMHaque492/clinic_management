@@ -1,15 +1,24 @@
 import sqlite3
+import os  # <-- ADD THIS IMPORT
+from werkzeug.security import generate_password_hash # <-- ADD THIS IMPORT
+
+# Use Render's persistent disk path if 'DB_PATH' env var is set,
+# otherwise, use 'clinic.db' for local development.
+DB_PATH = os.environ.get('DB_PATH', 'clinic.db')
 
 def get_db_connection():
     """Establishes a connection to the database."""
-    conn = sqlite3.connect('clinic.db')
+    conn = sqlite3.connect(DB_PATH) # <-- CHANGE THIS LINE
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     """Initializes the database with the required schema and a trigger."""
+    print(f"Initializing database at {DB_PATH}") # Optional: good for logging
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # ... (rest of your init_db function is unchanged) ...
 
     # Drop tables if they exist (for easy re-initialization)
     cursor.execute("DROP TABLE IF EXISTS billing;")

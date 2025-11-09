@@ -1,10 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash, generate_password_hash
-import sqlite3
-from database import get_db_connection, init_db
-from datetime import datetime
-import os
+# ... (all your other imports)
+import os  # <-- ADD THIS IMPORT
+from database import init_db # <-- ADD THIS IMPORT
+
+# Get the DB path (defaults to 'clinic.db' locally)
+DB_PATH = os.environ.get('DB_PATH', 'clinic.db')
+
+# Auto-initialize the database if it doesn't exist on the persistent disk
+if not os.path.exists(DB_PATH):
+    print(f"Database not found at {DB_PATH}. Initializing...")
+    try:
+        init_db()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a_very_secret_key_that_should_be_changed'
